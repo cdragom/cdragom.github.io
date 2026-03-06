@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1.0">
+<title>用户认证</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :root {
+    --gold: #BEAD8F;
+    --gold-light: #D4C5A3;
+    --gold-deep: #A69070;
+    --gold-bg: #F7F3EC;
+    --text-primary: #2C2416;
+    --text-secondary: #7A6E60;
+    --text-hint: #B8AFA3;
+    --border: #E2D9CC;
+    --white: #FFFDF9;
+  }
+
+  html, body {
+    width: 375px;
+    min-height: 812px;
+    background: var(--gold-bg);
+    font-family: 'Noto Sans SC', sans-serif;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 280px 200px at 50% -20px, rgba(190,173,143,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 160px 160px at 90% 60%, rgba(190,173,143,0.10) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    width: 375px;
+    min-height: 812px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    width: 100%;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .status-time {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+  }
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Nav Bar */
+  .nav-bar {
+    width: 100%;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    position: relative;
+  }
+  .nav-back {
+    position: absolute;
+    left: 16px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 2px;
+  }
+
+  /* Hero Section */
+  .hero-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0 24px;
+    position: relative;
+  }
+
+  .avatar-ring-outer {
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgba(190,173,143,0.25), rgba(190,173,143,0.05));
+    border: 1px solid rgba(190,173,143,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: breathe 4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(190,173,143,0.0), 0 8px 32px rgba(190,173,143,0.15); }
+    50% { box-shadow: 0 0 0 8px rgba(190,173,143,0.08), 0 8px 32px rgba(190,173,143,0.25); }
+  }
+
+  .avatar-ring-inner {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: linear-gradient(160deg, #EDE3D3 0%, #D9CAAE 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(166,144,112,0.25), inset 0 1px 2px rgba(255,255,255,0.6);
+    overflow: hidden;
+  }
+
+  .hero-label {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero-label-line {
+    width: 28px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold));
+  }
+  .hero-label-line.right {
+    background: linear-gradient(90deg, var(--gold), transparent);
+  }
+  .hero-label-text {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    color: var(--gold-deep);
+    letter-spacing: 3px;
+    font-weight: 300;
+  }
+
+  /* Card */
+  .card {
+    width: calc(375px - 32px);
+    margin: 0 16px;
+    background: var(--white);
+    border-radius: 20px;
+    padding: 28px 20px 24px;
+    box-shadow: 0 2px 24px rgba(166,144,112,0.10), 0 1px 0 rgba(255,255,255,0.9) inset;
+    border: 1px solid rgba(226,217,204,0.6);
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.6s cubic-bezier(0.22,1,0.36,1) both;
+    animation-delay: 0.1s;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, var(--gold-light) 30%, var(--gold) 50%, var(--gold-light) 70%, transparent 100%);
+    border-radius: 20px 20px 0 0;
+  }
+
+  /* Field Group */
+  .field-group {
+    margin-bottom: 16px;
+  }
+  .field-group:last-child { margin-bottom: 0; }
+
+  .field-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .field-label-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+  .field-label-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+
+  .field-box {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #FDFAF5;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+    cursor: text;
+  }
+  .field-box:focus-within {
+    border-color: var(--gold);
+    background: var(--white);
+    box-shadow: 0 0 0 3px rgba(190,173,143,0.15);
+  }
+
+  .field-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    opacity: 0.55;
+  }
+
+  .field-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+    line-height: 1;
+    caret-color: var(--gold-deep);
+  }
+  .field-input::placeholder {
+    color: var(--text-hint);
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  .field-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+    opacity: 0.5;
+  }
+
+  /* Tips */
+  .tips-section {
+    width: calc(375px - 32px);
+    margin: 16px 16px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    animation: slideUp 0.6s cubic-bezier(0.22,1,0.36,1) both;
+    animation-delay: 0.25s;
+  }
+  .tips-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    opacity: 0.5;
+  }
+  .tips-text {
+    font-size: 11.5px;
+    color: var(--text-hint);
+    line-height: 1.7;
+    letter-spacing: 0.3px;
+  }
+
+  .spacer { flex: 1; }
+
+  /* Bottom Button */
+  .bottom-area {
+    width: 100%;
+    padding: 16px 16px 32px;
+    background: linear-gradient(to top, var(--gold-bg) 70%, transparent);
+    animation: slideUp 0.6s cubic-bezier(0.22,1,0.36,1) both;
+    animation-delay: 0.35s;
+  }
+
+  .cert-btn {
+    width: 100%;
+    height: 52px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #CBBF9E 0%, #BEAD8F 40%, #B09A72 100%);
+    color: #FFF9EE;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 6px;
+    text-indent: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(166,144,112,0.4), 0 1px 0 rgba(255,255,255,0.25) inset;
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cert-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+    transform: skewX(-20deg);
+    animation: shimmer 3s ease-in-out infinite;
+    animation-delay: 1.2s;
+  }
+  @keyframes shimmer {
+    0% { left: -100%; }
+    40%, 100% { left: 160%; }
+  }
+  .cert-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(166,144,112,0.35);
+  }
+
+  .home-indicator {
+    width: 134px;
+    height: 5px;
+    background: var(--text-primary);
+    border-radius: 3px;
+    margin: 8px auto 0;
+    opacity: 0.18;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="#2C2416">
+        <rect x="0" y="3" width="3" height="9" rx="1" opacity="0.3"/>
+        <rect x="4.5" y="2" width="3" height="10" rx="1" opacity="0.5"/>
+        <rect x="9" y="0.5" width="3" height="11.5" rx="1" opacity="0.7"/>
+        <rect x="13.5" y="0" width="3" height="12" rx="1"/>
+      </svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#2C2416">
+        <path d="M8 2.5C10.5 2.5 12.7 3.6 14.2 5.3L15.5 4C13.6 1.9 11 0.5 8 0.5C5 0.5 2.4 1.9 0.5 4L1.8 5.3C3.3 3.6 5.5 2.5 8 2.5Z" opacity="0.4"/>
+        <path d="M8 5.5C9.7 5.5 11.2 6.2 12.3 7.4L13.6 6.1C12.1 4.5 10.2 3.5 8 3.5C5.8 3.5 3.9 4.5 2.4 6.1L3.7 7.4C4.8 6.2 6.3 5.5 8 5.5Z" opacity="0.7"/>
+        <circle cx="8" cy="10.5" r="1.5"/>
+      </svg>
+      <svg width="27" height="13" viewBox="0 0 27 13">
+        <rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="#2C2416" stroke-width="1" fill="none" opacity="0.35"/>
+        <rect x="2" y="2" width="17" height="9" rx="2" fill="#2C2416"/>
+        <path d="M24.5 4.5v4a2 2 0 000-4z" fill="#2C2416" opacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Nav Bar -->
+  <div class="nav-bar">
+    <div class="nav-back">
+      <svg width="10" height="17" viewBox="0 0 10 17" fill="none" stroke="#2C2416" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 1L1 8.5L9 16"/>
+      </svg>
+    </div>
+    <span class="nav-title">实名认证</span>
+  </div>
+
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="avatar-ring-outer">
+      <div class="avatar-ring-inner">
+        <svg width="54" height="54" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Head -->
+          <circle cx="27" cy="17" r="9.5" fill="#C8A882"/>
+          <circle cx="27" cy="17" r="7.5" fill="#D9B896"/>
+          <!-- Eyes -->
+          <ellipse cx="23.5" cy="16" rx="1.3" ry="1.5" fill="#6B4E37"/>
+          <ellipse cx="30.5" cy="16" rx="1.3" ry="1.5" fill="#6B4E37"/>
+          <circle cx="24.1" cy="15.3" r="0.45" fill="white"/>
+          <circle cx="31.1" cy="15.3" r="0.45" fill="white"/>
+          <!-- Brow -->
+          <path d="M22 13.5 Q23.5 12.5 25 13.5" stroke="#8B6347" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+          <path d="M29 13.5 Q30.5 12.5 32 13.5" stroke="#8B6347" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+          <!-- Smile -->
+          <path d="M24 20 Q27 22.5 30 20" stroke="#8B6347" stroke-width="1" fill="none" stroke-linecap="round"/>
+          <!-- Ear -->
+          <ellipse cx="17.5" cy="17" rx="1.8" ry="2.5" fill="#C8A882"/>
+          <ellipse cx="36.5" cy="17" rx="1.8" ry="2.5" fill="#C8A882"/>
+          <!-- Neck -->
+          <rect x="24.5" y="25.5" width="5" height="4.5" rx="2" fill="#C8A882"/>
+          <!-- Clothes / Body -->
+          <path d="M9 54 C9 41 17 34 27 34 C37 34 45 41 45 54Z" fill="#A69070"/>
+          <!-- Collar V -->
+          <path d="M22 34.5 L27 43 L32 34.5" fill="#BEAD8F" opacity="0.7"/>
+          <path d="M22 34.5 L27 38 L32 34.5" fill="#C8B690" opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="hero-label">
+      <div class="hero-label-line"></div>
+      <span class="hero-label-text">身份核验</span>
+      <div class="hero-label-line right"></div>
+    </div>
+  </div>
+
+  <!-- Input Card -->
+  <div class="card">
+
+    <!-- 姓名 -->
+    <div class="field-group">
+      <div class="field-label">
+        <div class="field-label-dot"></div>
+        <span class="field-label-text">姓名</span>
+      </div>
+      <div class="field-box" onclick="this.querySelector('input').focus()">
+        <svg class="field-icon" viewBox="0 0 18 18" fill="none" stroke="#BEAD8F" stroke-width="1.4" stroke-linecap="round">
+          <circle cx="9" cy="5.5" r="3"/>
+          <path d="M2.5 16C2.5 13 5.5 11 9 11C12.5 11 15.5 13 15.5 16"/>
+        </svg>
+        <input class="field-input" type="text" placeholder="请输入您的真实姓名" maxlength="20"/>
+      </div>
+    </div>
+
+    <div class="field-divider"></div>
+
+    <!-- 身份证号 -->
+    <div class="field-group">
+      <div class="field-label">
+        <div class="field-label-dot"></div>
+        <span class="field-label-text">身份证号码</span>
+      </div>
+      <div class="field-box" onclick="this.querySelector('input').focus()">
+        <svg class="field-icon" viewBox="0 0 18 18" fill="none" stroke="#BEAD8F" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1.5" y="4" width="15" height="10" rx="2"/>
+          <circle cx="6" cy="9" r="1.8"/>
+          <line x1="9.5" y1="7.5" x2="14" y2="7.5"/>
+          <line x1="9.5" y1="10.5" x2="14" y2="10.5"/>
+        </svg>
+        <input class="field-input" type="text" placeholder="请输入18位身份证号码" maxlength="18"/>
+      </div>
+    </div>
+
+    <div class="field-divider"></div>
+
+    <!-- 手机号 -->
+    <div class="field-group">
+      <div class="field-label">
+        <div class="field-label-dot"></div>
+        <span class="field-label-text">手机号</span>
+      </div>
+      <div class="field-box" onclick="this.querySelector('input').focus()">
+        <svg class="field-icon" viewBox="0 0 18 18" fill="none" stroke="#BEAD8F" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4.5" y="1" width="9" height="16" rx="2"/>
+          <circle cx="9" cy="14.5" r="0.8" fill="#BEAD8F" stroke="none"/>
+          <line x1="6.5" y1="3.5" x2="11.5" y2="3.5"/>
+        </svg>
+        <input class="field-input" type="tel" placeholder="请输入您的手机号码" maxlength="11"/>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Tips -->
+  <div class="tips-section">
+    <svg class="tips-icon" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="6" stroke="#BEAD8F" stroke-width="1.2"/>
+      <line x1="7" y1="6.5" x2="7" y2="10.5" stroke="#BEAD8F" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="7" cy="4.2" r="0.7" fill="#BEAD8F"/>
+    </svg>
+    <span class="tips-text">您的信息将被严格加密保护，仅用于身份核验，请放心填写真实信息</span>
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- Bottom CTA -->
+  <div class="bottom-area">
+    <button class="cert-btn">开始认证</button>
+    <div class="home-indicator"></div>
+  </div>
+
+</div>
+</body>
+</html>
