@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=375, initial-scale=1.0" />
+  <title>身份切换</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #BEAD8F;
+      --primary-light: #D8CBA8;
+      --primary-dark: #A09070;
+      --primary-bg: #F8F5EE;
+      --primary-bg2: #F2EDE2;
+      --gold-shine: #E8D9B0;
+      --text-main: #2C2618;
+      --text-sub: #7A7060;
+      --text-muted: #B0A898;
+      --white: #FFFFFF;
+      --border: rgba(190,173,143,0.25);
+      --shadow: rgba(160,144,112,0.15);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      margin: 0; padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #E8E2D8;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 24px 0;
+      font-family: 'Noto Sans SC', sans-serif;
+    }
+
+    .phone-frame {
+      width: 375px;
+      min-height: 812px;
+      background: var(--primary-bg);
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow:
+        0 30px 80px rgba(0,0,0,0.18),
+        0 0 0 8px rgba(255,255,255,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+
+    /* Status bar */
+    .status-bar {
+      height: 44px;
+      background: var(--primary-bg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px 0 28px;
+    }
+    .status-bar .time {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+      letter-spacing: 0.3px;
+    }
+    .status-icons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-icons svg {
+      fill: var(--text-main);
+    }
+
+    /* Top nav */
+    .top-nav {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      position: relative;
+      background: var(--primary-bg);
+    }
+    .top-nav .back-btn {
+      position: absolute;
+      left: 16px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(190,173,143,0.15);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .top-nav .back-btn:hover {
+      background: rgba(190,173,143,0.3);
+    }
+    .top-nav h1 {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-main);
+      letter-spacing: 1px;
+    }
+
+    /* Hero section */
+    .hero-section {
+      margin: 10px 16px 0;
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 4px 24px var(--shadow);
+      position: relative;
+    }
+
+    .hero-gradient {
+      background: linear-gradient(145deg, #F5EFE0 0%, #EDE3CC 40%, #E5D8B8 100%);
+      padding: 28px 24px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative circles */
+    .hero-gradient::before {
+      content: '';
+      position: absolute;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(190,173,143,0.25) 0%, transparent 70%);
+      top: -60px; right: -40px;
+    }
+    .hero-gradient::after {
+      content: '';
+      position: absolute;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      border: 1px solid rgba(190,173,143,0.3);
+      bottom: -30px; right: 60px;
+    }
+
+    .current-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      color: var(--primary-dark);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .current-label::before {
+      content: '';
+      display: inline-block;
+      width: 16px; height: 1.5px;
+      background: var(--primary-dark);
+    }
+
+    .identity-display {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .avatar {
+      width: 68px; height: 68px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(160,144,112,0.4);
+    }
+    .avatar svg {
+      width: 36px; height: 36px;
+      fill: rgba(255,255,255,0.95);
+    }
+    .active-dot {
+      position: absolute;
+      bottom: -2px; right: -2px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: #5CB870;
+      border: 2.5px solid var(--white);
+      box-shadow: 0 2px 6px rgba(92,184,112,0.5);
+    }
+
+    .identity-info {
+      flex: 1;
+    }
+    .identity-name {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .identity-desc {
+      font-size: 12px;
+      color: var(--text-sub);
+      letter-spacing: 0.3px;
+      line-height: 1.6;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    .badge-gold {
+      background: rgba(190,173,143,0.25);
+      color: var(--primary-dark);
+      border: 1px solid rgba(190,173,143,0.4);
+    }
+    .badge-blue {
+      background: rgba(100,140,200,0.12);
+      color: #5878B0;
+      border: 1px solid rgba(100,140,200,0.2);
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: flex;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      gap: 0;
+    }
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      position: relative;
+    }
+    .stat-item + .stat-item::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 50%;
+      transform: translateY(-50%);
+      width: 1px; height: 32px;
+      background: var(--border);
+    }
+    .stat-val {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .stat-val span {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-sub);
+      margin-left: 1px;
+    }
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      letter-spacing: 0.3px;
+    }
+
+    /* Section title */
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-sub);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 20px 16px 10px;
+    }
+
+    /* Identity switch cards */
+    .switch-panel {
+      margin: 0 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .id-card {
+      background: var(--white);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .id-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(190,173,143,0.06) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .id-card:hover::before,
+    .id-card.active::before {
+      opacity: 1;
+    }
+
+    .id-card.active {
+      border-color: var(--primary);
+      box-shadow: 0 4px 20px rgba(190,173,143,0.3);
+      transform: scale(1.005);
+    }
+
+    .id-card.inactive:hover {
+      border-color: rgba(190,173,143,0.4);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    }
+
+    .id-card-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.28s;
+    }
+    .id-card.active .id-card-icon {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      box-shadow: 0 4px 14px rgba(160,144,112,0.4);
+    }
+    .id-card.inactive .id-card-icon {
+      background: #F0ECE4;
+    }
+    .id-card-icon svg {
+      width: 26px; height: 26px;
+      transition: fill 0.25s;
+    }
+    .id-card.active .id-card-icon svg {
+      fill: white;
+    }
+    .id-card.inactive .id-card-icon svg {
+      fill: var(--text-muted);
+    }
+
+    .id-card-text {
+      flex: 1;
+    }
+    .id-card-name {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 4px;
+      transition: color 0.25s;
+    }
+    .id-card.active .id-card-name {
+      color: var(--primary-dark);
+    }
+    .id-card-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.2px;
+      line-height: 1.5;
+    }
+
+    .id-card-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .check-circle {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      flex-shrink: 0;
+    }
+    .id-card.active .check-circle {
+      background: var(--primary);
+      border-color: var(--primary);
+      transform: scale(1.1);
+    }
+    .check-circle svg {
+      width: 14px; height: 14px;
+      fill: none;
+      stroke: transparent;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 0.2s;
+    }
+    .id-card.active .check-circle svg {
+      stroke: white;
+    }
+
+    .current-tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, var(--primary-light), var(--primary));
+      color: var(--white);
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.25s;
+    }
+    .id-card.active .current-tag {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Confirm button */
+    .btn-wrap {
+      padding: 24px 16px 16px;
+    }
+
+    .confirm-btn {
+      width: 100%;
+      height: 52px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 50%, var(--primary-dark) 100%);
+      background-size: 200% 200%;
+      background-position: 0% 50%;
+      color: white;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(160,144,112,0.45);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    .confirm-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(255,255,255,0.12), transparent);
+    }
+    .confirm-btn:hover {
+      background-position: 100% 50%;
+      box-shadow: 0 8px 28px rgba(160,144,112,0.55);
+      transform: translateY(-1px);
+    }
+    .confirm-btn:active {
+      transform: scale(0.98) translateY(0);
+      box-shadow: 0 4px 12px rgba(160,144,112,0.35);
+    }
+
+    /* Permission hints */
+    .hint-section {
+      margin: 0 16px 24px;
+      padding: 16px;
+      background: rgba(190,173,143,0.08);
+      border: 1px solid rgba(190,173,143,0.2);
+      border-radius: var(--radius-md);
+    }
+    .hint-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary-dark);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .hint-title svg {
+      fill: var(--primary-dark);
+      width: 13px; height: 13px;
+    }
+    .hint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .hint-item {
+      font-size: 11.5px;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      line-height: 1.5;
+    }
+    .hint-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--primary);
+      flex-shrink: 0;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(44,38,24,0.88);
+      color: white;
+      padding: 10px 22px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Divider */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 16px 0;
+      color: var(--text-muted);
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+    .or-divider::before, .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Subtle animation on load */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero-section { animation: fadeUp 0.5s ease both; }
+    .section-title { animation: fadeUp 0.5s 0.1s ease both; }
+    .switch-panel { animation: fadeUp 0.5s 0.15s ease both; }
+    .btn-wrap { animation: fadeUp 0.5s 0.2s ease both; }
+    .hint-section { animation: fadeUp 0.5s 0.25s ease both; }
+  </style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="status-icons">
+      <!-- Signal -->
+      <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="8" width="3" height="4" rx="0.5"/><rect x="4.5" y="5.5" width="3" height="6.5" rx="0.5"/><rect x="9" y="3" width="3" height="9" rx="0.5"/><rect x="13.5" y="0" width="3" height="12" rx="0.5"/></svg>
+      <!-- Wifi -->
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <path d="M8 9.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5z" fill="currentColor" style="fill:var(--text-main)"/>
+        <path d="M3.5 6.5C5 5 6.4 4.3 8 4.3s3 .7 4.5 2.2" stroke="var(--text-main)" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+        <path d="M1 3.5C3.3 1.2 5.5 0 8 0s4.7 1.2 7 3.5" stroke="var(--text-main)" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+      </svg>
+      <!-- Battery -->
+      <svg width="25" height="13" viewBox="0 0 25 13">
+        <rect x="0" y="1" width="21" height="11" rx="2.5" stroke="var(--text-main)" stroke-width="1.2" fill="none"/>
+        <rect x="1.5" y="2.5" width="16" height="8" rx="1.5" fill="var(--text-main)"/>
+        <path d="M22.5 4.5v4" stroke="var(--text-main)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Top Nav -->
+  <div class="top-nav">
+    <div class="back-btn">
+      <svg width="9" height="15" viewBox="0 0 9 15" fill="none">
+        <path d="M7.5 1.5L1.5 7.5L7.5 13.5" stroke="#2C2618" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h1>身份切换</h1>
+  </div>
+
+  <!-- Hero: Current Identity -->
+  <div class="hero-section">
+    <div class="hero-gradient">
+      <div class="current-label">当前身份</div>
+      <div class="identity-display">
+        <div class="avatar-wrapper">
+          <div class="avatar" id="heroAvatar">
+            <!-- Manager icon -->
+            <svg viewBox="0 0 24 24"><path d="M12 2C9.24 2 7 4.24 7 7s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 9c-3.33 0-8 1.68-8 5v1h16v-1c0-3.32-4.67-5-8-5zm0 3c-2.33 0-5.17 1.02-6 2h12c-.83-.98-3.67-2-6-2z"/><rect x="14.5" y="10" width="5" height="3" rx="1" opacity="0.6"/><rect x="15.5" y="13" width="3" height="5" rx="1" opacity="0.6"/></svg>
+          </div>
+          <div class="active-dot"></div>
+        </div>
+        <div class="identity-info">
+          <div class="identity-name" id="heroName">理财经理</div>
+          <div class="identity-desc" id="heroDesc">专业财富管理 · 客户服务端</div>
+          <div class="badge-row">
+            <span class="badge badge-gold" id="badge1">认证经理</span>
+            <span class="badge badge-blue" id="badge2">VIP权限</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="stats-row" id="statsRow">
+      <div class="stat-item">
+        <div class="stat-val">128<span>位</span></div>
+        <div class="stat-lbl">管理客户</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val">3.2<span>亿</span></div>
+        <div class="stat-lbl">管理资产</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val">96<span>%</span></div>
+        <div class="stat-lbl">客户满意度</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section Title -->
+  <div class="section-title">切换身份</div>
+
+  <!-- Switch Cards -->
+  <div class="switch-panel">
+    <!-- Card 1: Manager -->
+    <div class="id-card active" id="card-manager" onclick="selectIdentity('manager')">
+      <div class="id-card-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C9.24 2 7 4.24 7 7s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm0 4c-3.33 0-8 1.68-8 5v1h16v-1c0-3.32-4.67-5-8-5z"/><rect x="15" y="9" width="4.5" height="2.5" rx="0.8" opacity="0.7"/><rect x="15.8" y="11.5" width="2.8" height="4" rx="0.8" opacity="0.7"/></svg>
+      </div>
+      <div class="id-card-text">
+        <div class="id-card-name">理财经理</div>
+        <div class="id-card-sub">管理客户资产 · 专属服务功能</div>
+      </div>
+      <div class="id-card-right">
+        <div class="check-circle">
+          <svg viewBox="0 0 14 14"><polyline points="2.5,7 5.5,10 11.5,4"/></svg>
+        </div>
+        <div class="current-tag">当前</div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="or-divider">或</div>
+
+    <!-- Card 2: Personal -->
+    <div class="id-card inactive" id="card-personal" onclick="selectIdentity('personal')">
+      <div class="id-card-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C9.24 2 7 4.24 7 7s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm0 4c-3.33 0-8 1.68-8 5v1h16v-1c0-3.32-4.67-5-8-5z"/></svg>
+      </div>
+      <div class="id-card-text">
+        <div class="id-card-name">个人客户</div>
+        <div class="id-card-sub">查看个人资产 · 投资理财服务</div>
+      </div>
+      <div class="id-card-right">
+        <div class="check-circle">
+          <svg viewBox="0 0 14 14"><polyline points="2.5,7 5.5,10 11.5,4"/></svg>
+        </div>
+        <div class="current-tag">当前</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Button -->
+  <div class="btn-wrap">
+    <button class="confirm-btn" onclick="confirmSwitch()">确认切换身份</button>
+  </div>
+
+  <!-- Hint Section -->
+  <div class="hint-section">
+    <div class="hint-title">
+      <svg viewBox="0 0 16 16"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm.75 10.5h-1.5v-5h1.5v5zm0-6.5h-1.5V3.5h1.5V5z"/></svg>
+      切换须知
+    </div>
+    <div class="hint-list">
+      <div class="hint-item"><div class="hint-dot"></div>切换身份后，页面权限及功能将随之调整</div>
+      <div class="hint-item"><div class="hint-dot"></div>个人客户身份下不可访问客户管理功能</div>
+      <div class="hint-item"><div class="hint-dot"></div>身份数据独立存储，随时可切换回来</div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let current = 'manager';
+  let selected = 'manager';
+
+  const identityData = {
+    manager: {
+      name: '理财经理',
+      desc: '专业财富管理 · 客户服务端',
+      badge1: '认证经理',
+      badge2: 'VIP权限',
+      stats: [
+        { val: '128', unit: '位', lbl: '管理客户' },
+        { val: '3.2', unit: '亿', lbl: '管理资产' },
+        { val: '96', unit: '%', lbl: '客户满意度' },
+      ]
+    },
+    personal: {
+      name: '个人客户',
+      desc: '个人财富管理 · 投资理财端',
+      badge1: '钻石会员',
+      badge2: '认证用户',
+      stats: [
+        { val: '52.8', unit: '万', lbl: '总资产' },
+        { val: '8.3', unit: '%', lbl: '年化收益' },
+        { val: '3', unit: '年', lbl: '投资年限' },
+      ]
+    }
+  };
+
+  function selectIdentity(id) {
+    selected = id;
+    const cardM = document.getElementById('card-manager');
+    const cardP = document.getElementById('card-personal');
+
+    if (id === 'manager') {
+      cardM.className = 'id-card active';
+      cardP.className = 'id-card inactive';
+    } else {
+      cardP.className = 'id-card active';
+      cardM.className = 'id-card inactive';
+    }
+  }
+
+  function confirmSwitch() {
+    if (selected === current) {
+      showToast('当前已是该身份');
+      return;
+    }
+
+    // Update hero section
+    const data = identityData[selected];
+    document.getElementById('heroName').textContent = data.name;
+    document.getElementById('heroDesc').textContent = data.desc;
+    document.getElementById('badge1').textContent = data.badge1;
+    document.getElementById('badge2').textContent = data.badge2;
+
+    // Update stats
+    const items = document.querySelectorAll('.stat-item');
+    data.stats.forEach((s, i) => {
+      items[i].querySelector('.stat-val').innerHTML = s.val + '<span>' + s.unit + '</span>';
+      items[i].querySelector('.stat-lbl').textContent = s.lbl;
+    });
+
+    current = selected;
+    showToast('✓ 已切换至' + data.name);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+</script>
+
+</body>
+</html>
