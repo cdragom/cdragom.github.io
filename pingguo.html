@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>TACHO · S1000RR 专为iPhone</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-touch-callout: none; }
+        body {
+            background: #0A0A0A;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Rajdhani', 'Impact', -apple-system, sans-serif;
+            touch-action: none;
+            overflow: hidden;
+            /* 防止iOS弹性滚动 */
+            overscroll-behavior: none;
+        }
+        .container {
+            width: 100%;
+            max-width: 430px;
+            height: 100vh;
+            max-height: 900px;
+            background: radial-gradient(circle at 50% 30%, #1a1a1a, #050505 80%);
+            border-radius: 0px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+            touch-action: none;
+            padding: 20px;
+            /* 防止iPhone底部安全区干扰 */
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        .metal-bg {
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: 80%;
+            height: 55%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #3a3a3a, #111111);
+            box-shadow: inset 0 -10px 30px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.6);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        #tachoCanvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1/1;
+            max-width: 380px;
+            position: relative;
+            z-index: 10;
+            touch-action: none;
+            filter: drop-shadow(0 0 20px rgba(255, 107, 0, 0.1));
+            /* 防止iOS长按菜单 */
+            -webkit-touch-callout: none;
+        }
+
+        .speed-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -40%);
+            z-index: 20;
+            text-align: center;
+            pointer-events: none;
+            margin-top: 10px;
+        }
+        .speed-value {
+            font-size: 52px;
+            font-weight: 800;
+            color: #FFFFFF;
+            letter-spacing: -2px;
+            text-shadow: 0 0 20px rgba(255, 107, 0, 0.3);
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            transition: color 0.1s;
+        }
+        .speed-unit {
+            font-size: 14px;
+            color: #666;
+            letter-spacing: 2px;
+            font-weight: 300;
+            display: block;
+            margin-top: 4px;
+        }
+
+        .start-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -30%);
+            z-index: 25;
+            pointer-events: none;
+            color: rgba(255, 107, 0, 0.7);
+            font-size: 18px;
+            letter-spacing: 4px;
+            background: rgba(0,0,0,0.6);
+            padding: 12px 24px;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 107, 0, 0.2);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            opacity: 1;
+            transition: opacity 0.6s ease;
+            font-weight: 300;
+            text-transform: uppercase;
+        }
+        .start-hint.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .rider-container {
+            position: absolute;
+            bottom: 12%;
+            right: 8%;
+            z-index: 30;
+            pointer-events: none;
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: bottom center;
+            width: 70px;
+            height: 70px;
+        }
+        .rider-container.accelerate { transform: rotate(-10deg) scale(1.05); }
+        .rider-container svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            filter: drop-shadow(0 4px 10px rgba(255, 107, 0, 0.2));
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 6%;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #444;
+            font-size: 11px;
+            letter-spacing: 3px;
+            font-weight: 300;
+            z-index: 5;
+            pointer-events: none;
+            text-transform: uppercase;
+        }
+        .hint span {
+            display: inline-block;
+            background: rgba(255,255,255,0.03);
+            padding: 6px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .glow-pulse {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80%;
+            height: 80%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,107,0,0.15) 0%, transparent 70%);
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .glow-pulse.active { opacity: 1; animation: pulse-ring 0.6s ease-out; }
+        @keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+
+        @media (max-width: 420px) {
+            .speed-value { font-size: 40px; }
+            .rider-container { width: 55px; height: 55px; bottom: 10%; }
+            .start-hint { font-size: 14px; padding: 8px 16px; }
+        }
+        /* iPhone刘海屏适配 */
+        @supports (padding: env(safe-area-inset-bottom)) {
+            .container { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="appContainer">
+    <div class="metal-bg"></div>
+    <div class="glow-pulse" id="glowPulse"></div>
+
+    <canvas id="tachoCanvas" width="600" height="600"></canvas>
+
+    <div class="speed-center">
+        <div class="speed-value" id="speedDisplay">0</div>
+        <span class="speed-unit">RPM x 1000</span>
+    </div>
+
+    <div class="start-hint" id="startHint">⚡ 触摸启动</div>
+
+    <div class="rider-container" id="rider">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="35" y="75" width="30" height="12" rx="4" fill="#333" stroke="#555" stroke-width="2"/>
+            <rect x="30" y="70" width="40" height="8" rx="2" fill="#222" stroke="#444" stroke-width="1.5"/>
+            <ellipse cx="50" cy="55" rx="20" ry="22" fill="#1a1a1a" stroke="#444" stroke-width="2"/>
+            <path d="M35 50 L30 65 L45 60 L50 50 L55 60 L70 65 L65 50" fill="#2a2a2a" stroke="#555" stroke-width="1.5"/>
+            <ellipse cx="50" cy="32" rx="22" ry="20" fill="#1a1a1a" stroke="#666" stroke-width="2"/>
+            <rect x="30" y="20" width="40" height="18" rx="8" fill="#222" stroke="#555" stroke-width="1.5"/>
+            <rect x="32" y="24" width="15" height="10" rx="4" fill="#FF6B00" opacity="0.8" stroke="#aaa" stroke-width="1"/>
+            <rect x="53" y="24" width="15" height="10" rx="4" fill="#FF6B00" opacity="0.8" stroke="#aaa" stroke-width="1"/>
+            <line x1="47" y1="28" x2="53" y2="28" stroke="#aaa" stroke-width="1.5"/>
+            <rect x="34" y="25" width="6" height="3" rx="1" fill="white" opacity="0.6"/>
+            <rect x="55" y="25" width="6" height="3" rx="1" fill="white" opacity="0.6"/>
+            <path d="M30 50 L20 65 L30 68" stroke="#444" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <path d="M70 50 L80 65 L70 68" stroke="#444" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <circle cx="20" cy="65" r="4" fill="#FF6B00"/>
+            <circle cx="80" cy="65" r="4" fill="#FF6B00"/>
+        </svg>
+    </div>
+
+    <div class="hint"><span>⬆ 上推轰油 · 松手滑行 ⬇</span></div>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // --- DOM ---
+        const container = document.getElementById('appContainer');
+        const canvas = document.getElementById('tachoCanvas');
+        const ctx = canvas.getContext('2d');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const glowPulse = document.getElementById('glowPulse');
+        const rider = document.getElementById('rider');
+        const startHint = document.getElementById('startHint');
+
+        // --- 画布 ---
+        let W = 600, H = 600;
+        function resizeCanvas() {
+            canvas.width = 600; canvas.height = 600;
+            W = 600; H = 600;
+            drawTacho(currentAngle);
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- 仪表参数 ---
+        const CENTER_X = 300, CENTER_Y = 320, RADIUS = 220;
+        const START_ANGLE = 0.75 * Math.PI;
+        const END_ANGLE = 2.25 * Math.PI;
+        const ANGLE_RANGE = END_ANGLE - START_ANGLE;
+        const IDLE_ANGLE = START_ANGLE + 0.06 * ANGLE_RANGE;
+
+        let currentAngle = START_ANGLE;
+        let targetAngle = START_ANGLE;
+        let engineStarted = false;
+
+        // --- 音频 ---
+        let audioCtx = null;
+        let mainOsc = null;
+        let gainNode = null;
+        let filterNode = null;
+        let isAudioReady = false;
+
+        function initAudio() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                mainOsc = audioCtx.createOscillator();
+                mainOsc.type = 'sawtooth';
+                const harmonicOsc = audioCtx.createOscillator();
+                harmonicOsc.type = 'square';
+                harmonicOsc.frequency.value = 440;
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.001;
+                filterNode = audioCtx.createBiquadFilter();
+                filterNode.type = 'lowpass';
+                filterNode.frequency.value = 2000;
+                filterNode.Q.value = 1.5;
+                const waveShaper = audioCtx.createWaveShaper();
+                const curve = new Float32Array(256);
+                for (let i = 0; i < 256; i++) {
+                    const x = (i - 128) / 128;
+                    curve[i] = Math.tanh(x * 1.5);
+                }
+                waveShaper.curve = curve;
+
+                mainOsc.connect(filterNode);
+                const gain2 = audioCtx.createGain();
+                gain2.gain.value = 0.15;
+                const osc2 = audioCtx.createOscillator();
+                osc2.type = 'sine';
+                osc2.frequency.value = 880;
+                osc2.connect(gain2);
+                gain2.connect(filterNode);
+                osc2.start();
+
+                filterNode.connect(waveShaper);
+                waveShaper.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                mainOsc.frequency.value = 40;
+                mainOsc.start();
+                isAudioReady = true;
+            } catch (e) {
+                console.warn('Audio init error:', e);
+                isAudioReady = false;
+            }
+        }
+
+        function playIgnitionSound() {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(60, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.15);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            } catch (e) {}
+        }
+
+        function updateEngineSound(rpm) {
+            if (!isAudioReady || !audioCtx || !engineStarted) {
+                if (gainNode) gainNode.gain.setTargetAtTime(0.001, audioCtx.currentTime, 0.01);
+                return;
+            }
+            try {
+                const norm = Math.min(rpm / 14000, 1.0);
+                const freq = 60 + norm * norm * 740;
+                mainOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.05);
+                const filterFreq = 1500 + norm * 6500;
+                filterNode.frequency.setTargetAtTime(filterFreq, audioCtx.currentTime, 0.05);
+                const vol = 0.05 + norm * 0.25;
+                gainNode.gain.setTargetAtTime(Math.min(vol, 0.3), audioCtx.currentTime, 0.05);
+            } catch (e) {}
+        }
+
+        // ============================================================
+        // 🍎 iPhone 震动（利用 Taptic Engine 短促反馈）
+        // ============================================================
+        function triggerHaptic(pattern) {
+            if (!navigator.vibrate) {
+                console.warn('震动API不可用（可能不是iOS 13.4+）');
+                return false;
+            }
+            try {
+                // iOS 推荐使用较短的震动脉冲，效果更干脆
+                const mainPattern = Array.isArray(pattern) ? pattern : [pattern];
+                // 先尝试短震唤醒（某些情况下需要）
+                navigator.vibrate(10);
+                setTimeout(() => {
+                    const result = navigator.vibrate(mainPattern);
+                    console.log(`震动执行: ${mainPattern}, 返回:`, result);
+                }, 20);
+                return true;
+            } catch (e) {
+                console.warn('震动异常:', e);
+                return false;
+            }
+        }
+
+        // --- 绘图 ---
+        function drawTacho(angle) {
+            ctx.clearRect(0, 0, W, H);
+
+            const grad = ctx.createRadialGradient(280, 300, 50, 300, 320, RADIUS + 20);
+            grad.addColorStop(0, '#4a4a4a');
+            grad.addColorStop(0.5, '#2a2a2a');
+            grad.addColorStop(1, '#0f0f0f');
+            ctx.beginPath();
+            ctx.arc(CENTER_X, CENTER_Y, RADIUS + 15, 0, 2 * Math.PI);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.shadowColor = 'rgba(255,107,0,0.1)';
+            ctx.shadowBlur = 20;
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.beginPath();
+            ctx.arc(CENTER_X, CENTER_Y, RADIUS - 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#181818';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const steps = 14;
+            for (let i = 0; i <= steps; i++) {
+                const ratio = i / steps;
+                const ang = START_ANGLE + ratio * ANGLE_RANGE;
+                const isRed = i > 11;
+                const innerR = RADIUS - (i % 2 === 0 ? 35 : 20);
+                const outerR = RADIUS - 8;
+                const x1 = CENTER_X + innerR * Math.cos(ang);
+                const y1 = CENTER_Y + innerR * Math.sin(ang);
+                const x2 = CENTER_X + outerR * Math.cos(ang);
+                const y2 = CENTER_Y + outerR * Math.sin(ang);
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = isRed ? '#FF6B00' : '#aaaaaa';
+                ctx.lineWidth = isRed ? 4 : 2;
+                ctx.stroke();
+                if (i % 2 === 0) {
+                    const textR = RADIUS - 48;
+                    const tx = CENTER_X + textR * Math.cos(ang);
+                    const ty = CENTER_Y + textR * Math.sin(ang) + 4;
+                    ctx.fillStyle = isRed ? '#FF6B00' : '#888';
+                    ctx.font = 'bold 20px "Rajdhani", -apple-system, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText((i * 10).toString(), tx, ty);
+                }
+            }
+
+            ctx.beginPath();
+            ctx.arc(CENTER_X, CENTER_Y, RADIUS - 15, 2.07 * Math.PI, 2.25 * Math.PI);
+            ctx.strokeStyle = 'rgba(255, 107, 0, 0.25)';
+            ctx.lineWidth = 12;
+            ctx.stroke();
+
+            const pointerLen = RADIUS - 30;
+            const endX = CENTER_X + pointerLen * Math.cos(angle);
+            const endY = CENTER_Y + pointerLen * Math.sin(angle);
+            ctx.shadowColor = 'rgba(255, 107, 0, 0.6)';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(CENTER_X, CENTER_Y);
+            ctx.lineTo(endX, endY);
+            ctx.strokeStyle = '#FF6B00';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(CENTER_X, CENTER_Y, 12, 0, 2 * Math.PI);
+            ctx.fillStyle = '#FF6B00';
+            ctx.fill();
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(CENTER_X, CENTER_Y, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#111';
+            ctx.fill();
+
+            const rpm = Math.round(((angle - START_ANGLE) / ANGLE_RANGE) * 14000);
+            speedDisplay.textContent = Math.max(0, Math.min(rpm, 14000));
+        }
+
+        // --- 动画循环 ---
+        function animate() {
+            const diff = targetAngle - currentAngle;
+            currentAngle += diff * 0.16;
+            if (Math.abs(diff) < 0.0005) currentAngle = targetAngle;
+            if (currentAngle < START_ANGLE) currentAngle = START_ANGLE;
+            if (currentAngle > END_ANGLE) currentAngle = END_ANGLE;
+
+            drawTacho(currentAngle);
+
+            const rpm = Math.round(((currentAngle - START_ANGLE) / ANGLE_RANGE) * 14000);
+            updateEngineSound(Math.max(0, rpm));
+
+            const intensity = (currentAngle - START_ANGLE) / ANGLE_RANGE;
+            if (intensity > 0.1 && engineStarted) {
+                rider.classList.add('accelerate');
+            } else {
+                rider.classList.remove('accelerate');
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- 冷启动 ---
+        function startEngine() {
+            if (engineStarted) return;
+            engineStarted = true;
+            startHint.classList.add('hidden');
+
+            targetAngle = IDLE_ANGLE;
+
+            // 点火：用 100ms 强震 + 50ms 短震，Taptic Engine 反应很明显
+            triggerHaptic([100, 40, 80]);
+
+            playIgnitionSound();
+
+            glowPulse.classList.remove('active');
+            void glowPulse.offsetWidth;
+            glowPulse.classList.add('active');
+
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // --- 交互 ---
+        let isDragging = false;
+        let lastY = 0;
+
+        function handleStart(e) {
+            e.preventDefault();
+            initAudio();
+
+            // 提前唤醒震动（iOS 需要）
+            try { navigator.vibrate(5); } catch(e) {}
+
+            if (!engineStarted) {
+                startEngine();
+                const touch = e.touches ? e.touches[0] : e;
+                lastY = touch.clientY;
+                isDragging = true;
+                return;
+            }
+
+            const touch = e.touches ? e.touches[0] : e;
+            lastY = touch.clientY;
+            isDragging = true;
+
+            // 每次触摸给一个短震（类似物理按键）
+            triggerHaptic(15);
+        }
+
+        function handleMove(e) {
+            e.preventDefault();
+            if (!isDragging || !engineStarted) return;
+            const touch = e.touches ? e.touches[0] : e;
+            const deltaY = lastY - touch.clientY;
+
+            let newTarget = targetAngle + deltaY * 0.008;
+            newTarget = Math.max(START_ANGLE, Math.min(END_ANGLE, newTarget));
+            targetAngle = newTarget;
+
+            if (Math.abs(deltaY) > 15) {
+                glowPulse.classList.remove('active');
+                void glowPulse.offsetWidth;
+                glowPulse.classList.add('active');
+            }
+
+            const rpmRatio = (targetAngle - START_ANGLE) / ANGLE_RANGE;
+            if (rpmRatio > 0.85 && !window._redVib) {
+                // 红区强震（两段式）
+                triggerHaptic([80, 30, 80]);
+                window._redVib = true;
+                setTimeout(() => window._redVib = false, 500);
+            }
+
+            lastY = touch.clientY;
+        }
+
+        function handleEnd(e) {
+            e.preventDefault();
+            if (!engineStarted) {
+                isDragging = false;
+                return;
+            }
+            isDragging = false;
+
+            const rpmRatio = (targetAngle - START_ANGLE) / ANGLE_RANGE;
+            if (rpmRatio > 0.05) {
+                let startVal = targetAngle;
+                const duration = 500 + rpmRatio * 500;
+                const startTime = performance.now();
+
+                function glideDown(time) {
+                    const elapsed = time - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const ease = 1 - Math.pow(1 - progress, 1.8);
+                    targetAngle = startVal - (startVal - IDLE_ANGLE) * ease;
+                    if (progress < 1) {
+                        requestAnimationFrame(glideDown);
+                    } else {
+                        targetAngle = IDLE_ANGLE;
+                        triggerHaptic(20);
+                    }
+                }
+                requestAnimationFrame(glideDown);
+            } else {
+                targetAngle = IDLE_ANGLE;
+                triggerHaptic(15);
+            }
+            glowPulse.classList.remove('active');
+            window._redVib = false;
+        }
+
+        // --- 事件绑定 (兼容 iPhone) ---
+        container.addEventListener('touchstart', handleStart, { passive: false });
+        container.addEventListener('touchmove', handleMove, { passive: false });
+        container.addEventListener('touchend', handleEnd, { passive: false });
+        container.addEventListener('touchcancel', handleEnd, { passive: false });
+
+        // 也支持鼠标（方便电脑调试）
+        container.addEventListener('mousedown', handleStart);
+        window.addEventListener('mousemove', (e) => { if (isDragging) handleMove(e); });
+        window.addEventListener('mouseup', (e) => { if (isDragging) handleEnd(e); });
+
+        // 点击任意位置初始化音频（iOS 必须）
+        document.addEventListener('click', initAudio, { once: true });
+        document.addEventListener('touchstart', initAudio, { once: true });
+
+        // --- 启动 ---
+        resizeCanvas();
+        currentAngle = START_ANGLE;
+        targetAngle = START_ANGLE;
+        animate();
+
+        console.log('🏍️ TACHO S1000RR 专为 iPhone 优化版已加载');
+        console.log('📳 如果感觉不到震动，请检查：');
+        console.log('   设置 → 声音与触感 → 系统触感 → 开启');
+        console.log('   或检查静音开关是否关闭（震动模式）');
+    })();
+</script>
+</body>
+</html>
